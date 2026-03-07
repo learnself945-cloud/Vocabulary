@@ -1,2 +1,302 @@
 # Vocabulary
 自訂單字測驗
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>專業單字管理系統 v38</title>
+    <style>
+        :root { --p: #3498db; --s: #2ecc71; --err: #e74c3c; --warn: #f39c12; --bg: #f4f7f6; }
+        body { font-family: 'Arial', 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
+        .container { max-width: 850px; margin: 20px auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .admin-section { border: 2px solid #e0e0e0; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
+        .edit-active { border-color: var(--warn) !important; background: #fff9f0 !important; }
+        .input-grid { display: grid; grid-template-columns: 1fr 1.2fr 120px; gap: 10px; margin-top: 10px; }
+        input, select, button { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        .full-width { grid-column: span 3; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        button { cursor: pointer; border: none; font-weight: bold; transition: 0.2s; }
+        .btn-save { background: var(--p); color: white; }
+        .btn-edit { background: var(--warn); color: white; padding: 5px 10px; font-size: 0.8rem; }
+        .btn-del { background: var(--err); color: white; padding: 5px 10px; font-size: 0.8rem; }
+        .btn-quiz { background: #9b59b6; color: white; flex: 1; }
+        .unit-card { border: 1px solid #eee; margin-top: 20px; border-radius: 10px; overflow: hidden; background: #fff; }
+        .unit-header { background: #f8f9fa; padding: 10px 15px; display: flex; justify-content: space-between; border-bottom: 2px solid var(--p); align-items: center; }
+        .vocab-row { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f1f1f1; gap: 12px; }
+        .vocab-info { flex-grow: 1; }
+        #quiz-screen { display: none; text-align: center; padding: 40px 20px; }
+        .filter-box { background: #ebf5fb; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--p); }
+
+        @media print {
+            @page { size: A4; margin: 10mm !important; }
+            #home-screen, #quiz-screen, .container { display: none !important; }
+            #print-temp-container { display: block !important; width: 190mm; margin: 0 auto; }
+            .print-page { display: grid !important; grid-template-columns: 95mm 95mm; grid-template-rows: repeat(7, 39.5mm); page-break-after: always !important; }
+            .print-item { border: 0.5pt solid #000 !important; display: flex !important; flex-direction: column !important; justify-content: center !important; align-items: center !important; padding: 8px; text-align: center; box-sizing: border-box; overflow: hidden; }
+            .print-word { font-size: 16pt; font-weight: bold; margin-bottom: 2px; }
+            .print-trans { font-size: 11pt; margin-bottom: 2px; }
+            .print-ex { font-size: 9pt; color: #444; line-height: 1.1; font-style: italic; }
+            .quiz-sheet { width: 100%; }
+            .quiz-row { display: flex; border-bottom: 1px solid #ccc; padding: 12px 0; font-size: 13pt; page-break-inside: avoid; }
+            .quiz-blank { flex: 1; border-bottom: 1.5px solid #000; height: 25px; margin-left: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="home-screen">
+    <div class="admin-section" id="input-area">
+        <h2>📂 單字管理系統 v38</h2>
+        <div class="input-grid">
+            <input type="text" id="unitName" list="unit-history" placeholder="輸入或選擇單元名稱">
+            <datalist id="unit-history"></datalist>
+            
+            <input type="text" id="word" placeholder="英文單字">
+            <select id="pos">
+                <option value="n.">n.</option><option value="v.">v.</option>
+                <option value="adj.">adj.</option><option value="adv.">adv.</option>
+                <option value="phr.">phr.</option><option value="idiom">idiom</option>
+            </select>
+            <input type="text" id="trans" placeholder="中文解釋" class="full-width">
+            <input type="text" id="example" class="full-width" placeholder="例句內容">
+        </div>
+        <div class="btn-group">
+            <button class="btn-save" onclick="saveVocab()">💾 儲存單字</button>
+            <button id="btn-cancel" style="display:none; background:#999; color:white;" onclick="clearInputs(true)">取消</button>
+            <button style="background:#7f8c8d; color:white;" onclick="exportData()">📤 匯出備份</button>
+            <button style="background:#7f8c8d; color:white;" onclick="document.getElementById('importFile').click()">📥 匯入資料</button>
+            <button style="background:#e67e22; color:white;" onclick="doPrint('card')">🖨️ 列印單字卡</button>
+            <button style="background:#27ae60; color:white;" onclick="doPrint('exam')">📝 產生紙本測驗</button>
+            <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+        </div>
+    </div>
+
+    <div class="filter-box">
+        <strong style="color: var(--p);">🔍 顯示單元：</strong>
+        <select id="viewFilter" onchange="renderUI()" style="flex:1; border-color: var(--p);">
+            <option value="HIDE_ALL">--- 隱藏全部單元 ---</option>
+            <option value="SHOW_ALL">--- 顯示全部單元 ---</option>
+        </select>
+    </div>
+
+    <div class="admin-section">
+        <h3>🎯 線上測驗中心</h3>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <select id="quizUnitSelect" style="flex:1;"></select>
+            <button class="btn-quiz" style="background:#34495e; flex:1;" onclick="startQuiz('spelling', false)">單元拼寫</button>
+            <button class="btn-quiz" style="background:#34495e; flex:1;" onclick="startQuiz('cloze', false)">單元填空</button>
+            <button class="btn-quiz" onclick="startQuiz('spelling', true)">🎯 自選測驗</button>
+        </div>
+    </div>
+
+    <div id="data-list"></div>
+</div>
+
+<div class="container" id="quiz-screen">
+    <h2 id="quiz-mode-name">測驗中</h2>
+    <div id="question-box" style="font-size: 1.5rem; margin: 30px 0;"></div>
+    <input type="text" id="quiz-input" style="width: 80%; font-size: 1.4rem; text-align: center;" autocomplete="off">
+    <div id="feedback" style="margin: 20px; font-weight: bold;"></div>
+    <div class="btn-group" style="justify-content: center;">
+        <button class="btn-save" onclick="checkAnswer()">提交</button>
+        <button id="next-btn" class="btn-quiz" style="display:none; flex:none; width: 120px;" onclick="nextQuestion()">下一題</button>
+        <button onclick="exitQuiz()" style="background:#ccc;">退出</button>
+    </div>
+</div>
+
+<div id="print-temp-container"></div>
+<input type="hidden" id="edit-id" value="">
+
+<script>
+    let vocabDB = JSON.parse(localStorage.getItem('myVocabApp_v28')) || {}; 
+    const synth = window.speechSynthesis;
+    let engVoice = null;
+
+    // 語音引擎初始化與預熱
+    function initVoice() {
+        const voices = synth.getVoices();
+        engVoice = voices.find(v => v.lang.includes('en-US')) || voices[0];
+        synth.speak(new SpeechSynthesisUtterance(''));
+    }
+    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = initVoice;
+
+    function speak(text) {
+        if (!text) return;
+        synth.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        if (engVoice) utter.voice = engVoice;
+        utter.lang = 'en-US';
+        requestAnimationFrame(() => synth.speak(utter));
+    }
+
+    function saveVocab() {
+        const word = document.getElementById('word').value.trim();
+        const trans = document.getElementById('trans').value.trim();
+        const unit = document.getElementById('unitName').value.trim() || "未分類";
+        const ex = document.getElementById('example').value.trim();
+        const editId = document.getElementById('edit-id').value;
+        if(!word || !trans) return alert("請輸入單字與中文");
+
+        if(editId !== "") {
+            for (let u in vocabDB) vocabDB[u] = vocabDB[u].filter(i => String(i.id) !== String(editId));
+        }
+        if(!vocabDB[unit]) vocabDB[unit] = [];
+        vocabDB[unit].push({ id: editId || Date.now().toString(), word, trans, pos: document.getElementById('pos').value, example: ex });
+        localStorage.setItem('myVocabApp_v28', JSON.stringify(vocabDB));
+        
+        // 儲存後自動過濾到該單元並刷新
+        document.getElementById('viewFilter').value = unit;
+        renderUI(); clearInputs(false);
+    }
+
+    function renderUI() {
+        const list = document.getElementById('data-list');
+        const filter = document.getElementById('viewFilter');
+        const qs = document.getElementById('quizUnitSelect');
+        const history = document.getElementById('unit-history');
+        
+        const currentFilter = filter.value;
+        const allUnits = Object.keys(vocabDB).sort();
+
+        list.innerHTML = "";
+        history.innerHTML = ""; // 關鍵：每次渲染時更新輸入歷史建議清
+        filter.innerHTML = '<option value="HIDE_ALL">--- 隱藏全部單元 ---</option><option value="SHOW_ALL">--- 顯示全部單元 ---</option>';
+        qs.innerHTML = '<option value="">-- 選擇單元 --</option>';
+        
+        allUnits.forEach(u => {
+            // 1. 更新輸入框的歷史清單 (Datalist)
+            history.innerHTML += `<option value="${u}">`;
+            
+            // 2. 更新顯示過濾器
+            filter.innerHTML += `<option value="${u}" ${currentFilter === u ? 'selected' : ''}>${u}</option>`;
+            
+            // 3. 更新測驗選單
+            qs.innerHTML += `<option value="${u}">${u}</option>`;
+            
+            // 4. 依照過濾條件顯示內容
+            if (currentFilter === "SHOW_ALL" || currentFilter === u) {
+                let html = `<div class="unit-card"><div class="unit-header"><div><input type="checkbox" onclick="toggleUnit('${u}', this.checked)"> <b>${u}</b></div><div><button onclick="renameUnit('${u}')">✏️</button> <button onclick="deleteUnit('${u}')" style="color:red; background:none;">🗑️</button></div></div>`;
+                vocabDB[u].forEach(item => {
+                    html += `<div class="vocab-row"><input type="checkbox" class="vocab-checkbox" data-id="${item.id}"><div class="vocab-info"><b>${item.word}</b> (${item.pos}) - ${item.trans}<br><small>${item.example || ''}</small></div><button onclick="speak('${item.word}')">🔊</button><button class="btn-edit" onclick="editItem('${item.id}')">修改</button><button class="btn-del" onclick="deleteItem('${item.id}')">刪除</button></div>`;
+                });
+                list.innerHTML += html + `</div>`;
+            }
+        });
+    }
+
+    function doPrint(type) {
+        const container = document.getElementById('print-temp-container');
+        const currentFilter = document.getElementById('viewFilter').value;
+        let items = [];
+        const cbs = document.querySelectorAll('.vocab-checkbox:checked');
+        
+        if(cbs.length > 0) {
+            const ids = Array.from(cbs).map(c => c.getAttribute('data-id'));
+            for(let u in vocabDB) vocabDB[u].forEach(i => { if(ids.includes(String(i.id))) items.push(i); });
+        } else if (currentFilter !== "SHOW_ALL" && currentFilter !== "HIDE_ALL") {
+            items = vocabDB[currentFilter] || [];
+        } else if (currentFilter === "SHOW_ALL") {
+            for(let u in vocabDB) items = items.concat(vocabDB[u]);
+        }
+        
+        if(items.length === 0) return alert("無單字可印");
+
+        let html = "";
+        if(type === 'exam') {
+            html += `<div class="quiz-sheet"><h2 style="text-align:center">Vocabulary Test</h2>`;
+            items.forEach((item, idx) => { html += `<div class="quiz-row"><div>${idx+1}. (${item.pos}) ${item.trans}</div><div class="quiz-blank"></div></div>`; });
+            html += `</div>`;
+        } else {
+            for (let i = 0; i < items.length; i += 14) {
+                html += `<div class="print-page">`;
+                items.slice(i, i + 14).forEach(item => { 
+                    html += `<div class="print-item">
+                        <div class="print-word">${item.word}</div>
+                        <div class="print-trans">(${item.pos}) ${item.trans}</div>
+                        <div class="print-ex">${item.example || ''}</div>
+                    </div>`; 
+                });
+                html += `</div>`;
+            }
+        }
+        container.innerHTML = html;
+        setTimeout(() => { window.print(); container.innerHTML = ""; }, 300);
+    }
+
+    // --- 測驗功能與其他 ---
+    let qArr = [], qIdx = 0, qM = '';
+    function startQuiz(mode, onlyChecked) {
+        qArr = [];
+        if(onlyChecked) {
+            const cbs = document.querySelectorAll('.vocab-checkbox:checked');
+            const ids = Array.from(cbs).map(c => c.getAttribute('data-id'));
+            for(let u in vocabDB) vocabDB[u].forEach(i => { if(ids.includes(String(i.id))) qArr.push(i); });
+        } else {
+            const u = document.getElementById('quizUnitSelect').value;
+            if(!u) return alert("請先選擇測驗單元");
+            qArr = [...vocabDB[u]];
+        }
+        if(qArr.length === 0) return alert("沒有題目");
+        qM = mode; qArr.sort(() => Math.random() - 0.5); qIdx = 0;
+        document.getElementById('home-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        nextQuestion();
+    }
+    function nextQuestion() {
+        if(qIdx >= qArr.length) return exitQuiz();
+        const item = qArr[qIdx];
+        const box = document.getElementById('question-box');
+        if(qM === 'cloze') box.innerHTML = `<small>${item.trans}</small><br>${(item.example || '').replace(new RegExp(item.word, 'gi'), '_____')}`;
+        else box.innerText = `${item.trans} (${item.pos})`;
+        document.getElementById('quiz-input').value = ""; document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none"; document.getElementById('quiz-input').focus();
+    }
+    function checkAnswer() {
+        const item = qArr[qIdx];
+        const ok = document.getElementById('quiz-input').value.trim().toLowerCase() === item.word.toLowerCase();
+        document.getElementById('feedback').innerText = ok ? "✅ 正確" : "❌ 答案: " + item.word;
+        if(ok) speak(item.word);
+        document.getElementById('next-btn').style.display = "inline-block"; qIdx++;
+    }
+
+    function editItem(id) {
+        let f = null, fu = "";
+        for (let u in vocabDB) { f = vocabDB[u].find(i => String(i.id) === String(id)); if(f) { fu = u; break; } }
+        if(f) {
+            document.getElementById('edit-id').value = f.id; document.getElementById('unitName').value = fu;
+            document.getElementById('word').value = f.word; document.getElementById('pos').value = f.pos;
+            document.getElementById('trans').value = f.trans; document.getElementById('example').value = f.example;
+            document.getElementById('input-area').classList.add('edit-active'); document.getElementById('btn-cancel').style.display = "inline-block";
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+    }
+    function clearInputs(u) {
+        document.getElementById('edit-id').value = ""; ['word','trans','example'].forEach(i => document.getElementById(i).value = "");
+        if(u) document.getElementById('unitName').value = ""; document.getElementById('input-area').classList.remove('edit-active');
+        document.getElementById('btn-cancel').style.display = "none";
+    }
+    function exportData() {
+        const fn = prompt("請輸入匯出檔名：", `vocab_${new Date().toISOString().slice(0,10)}`);
+        if(!fn) return;
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(vocabDB)]));
+        a.download = `${fn}.json`; a.click();
+    }
+    function importData(e) {
+        const r = new FileReader(); r.onload = (ev) => {
+            vocabDB = JSON.parse(ev.target.result);
+            localStorage.setItem('myVocabApp_v28', JSON.stringify(vocabDB));
+            renderUI(); alert("資料匯入成功");
+        };
+        r.readAsText(e.target.files[0]);
+    }
+    function exitQuiz() { document.getElementById('home-screen').style.display = 'block'; document.getElementById('quiz-screen').style.display = 'none'; }
+    function toggleUnit(u, c) { document.querySelectorAll('.unit-card').forEach(card => { if(card.querySelector('b').innerText === u) card.querySelectorAll('.vocab-checkbox').forEach(b => b.checked = c); }); }
+    function deleteUnit(u) { if(confirm("確定刪除整個單元？")) { delete vocabDB[u]; renderUI(); } }
+    function deleteItem(id) { if(confirm("刪除單字？")) { for(let u in vocabDB) vocabDB[u]=vocabDB[u].filter(i=>String(i.id)!==String(id)); renderUI(); } }
+    function renameUnit(o) { let n = prompt("修改單元名稱：", o); if(n && n !== o) { vocabDB[n] = (vocabDB[n] || []).concat(vocabDB[o]); delete vocabDB[o]; renderUI(); } }
+    document.getElementById('quiz-input').addEventListener('keypress', e => { if(e.key === 'Enter') { if(document.getElementById('next-btn').style.display === "none") checkAnswer(); else nextQuestion(); } });
+    
+    renderUI();
+</script>
+</body>
+</html>
