@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>專業單字管理系統 v43</title>
+    <title>專業單字管理系統 v44</title>
     <style>
         :root { --p: #3498db; --s: #2ecc71; --err: #e74c3c; --warn: #f39c12; --bg: #f4f7f6; }
         body { font-family: 'Arial', 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
@@ -25,19 +25,50 @@
         #quiz-screen { display: none; text-align: center; padding: 40px 20px; }
         .filter-box { background: #ebf5fb; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--p); }
 
+        /* --- 列印與 PDF 樣式優化 --- */
         @media print {
             @page { size: A4; margin: 0; }
             #home-screen, #quiz-screen, .container, .admin-section, .filter-box { display: none !important; }
             html, body { background: #fff !important; margin: 0; padding: 0; }
-            #print-temp-container { display: flex !important; flex-direction: column; align-items: center; width: 100%; background: #fff !important; }
-            .print-page { display: grid !important; grid-template-columns: 95mm 95mm; grid-template-rows: repeat(7, 39.5mm); page-break-after: always !important; width: 190mm; margin: 10mm 0; background: #fff !important; }
-            .print-item { border: 0.5pt solid #000 !important; display: flex !important; flex-direction: column !important; justify-content: center !important; align-items: center !important; padding: 8px; text-align: center; box-sizing: border-box; background: #fff !important; }
-            .print-word { font-size: 16pt; font-weight: bold; }
-            .print-trans { font-size: 11pt; }
-            .print-ex { font-size: 9pt; color: #333 !important; font-style: italic; }
+            
+            #print-temp-container { 
+                display: flex !important; 
+                flex-direction: column; 
+                align-items: center; 
+                width: 100%; 
+                background: #fff !important; 
+            }
+
+            .print-page { 
+                display: grid !important; 
+                grid-template-columns: 95mm 95mm; 
+                grid-template-rows: repeat(7, 39.5mm); 
+                page-break-after: always !important; 
+                width: 190mm; 
+                margin: 10mm 0; 
+                background: #fff !important; 
+            }
+
+            .print-item { 
+                border: 0.5pt solid #000 !important; 
+                display: flex !important; 
+                flex-direction: column !important; 
+                justify-content: center !important; 
+                align-items: center !important; 
+                padding: 10px; 
+                text-align: center; 
+                box-sizing: border-box; 
+                background: #fff !important; 
+            }
+
+            /* 加大列印字體 */
+            .print-word { font-size: 22pt; font-weight: bold; margin-bottom: 4px; }
+            .print-trans { font-size: 14pt; margin-bottom: 4px; }
+            .print-ex { font-size: 11pt; color: #333 !important; font-style: italic; line-height: 1.2; }
+
             .quiz-sheet { width: 190mm; margin: 10mm 0; }
-            .quiz-row { display: flex; border-bottom: 1px solid #000 !important; padding: 12px 0; font-size: 13pt; page-break-inside: avoid; }
-            .quiz-blank { flex: 1; border-bottom: 1.5px solid #000 !important; height: 25px; margin-left: 20px; }
+            .quiz-row { display: flex; border-bottom: 1px solid #000 !important; padding: 15px 0; font-size: 14pt; page-break-inside: avoid; }
+            .quiz-blank { flex: 1; border-bottom: 1.5px solid #000 !important; height: 28px; margin-left: 20px; }
         }
     </style>
 </head>
@@ -45,7 +76,7 @@
 
 <div class="container" id="home-screen">
     <div class="admin-section" id="input-area">
-        <h2>📂 單字管理系統 v43</h2>
+        <h2>📂 單字管理系統 v44</h2>
         <div class="input-grid">
             <input type="text" id="unitName" list="unit-history" placeholder="輸入或選擇單元名稱">
             <datalist id="unit-history"></datalist>
@@ -63,9 +94,9 @@
             <button id="btn-cancel" style="display:none; background:#999; color:white;" onclick="clearInputs(true)">取消</button>
             <button style="background:#7f8c8d; color:white;" onclick="exportData()">📤 匯出</button>
             <button style="background:#7f8c8d; color:white;" onclick="document.getElementById('importFile').click()">📥 匯入</button>
-            <button style="background:#2c3e50; color:white;" onclick="exportAsText()">📝 匯出單元清單</button>
-            <button style="background:#e67e22; color:white;" onclick="doPrint('card')">🖨️ 列印單字卡</button>
-            <button style="background:#27ae60; color:white;" onclick="doPrint('exam')">📝 紙本測驗</button>
+            <button style="background:#2c3e50; color:white;" onclick="exportAsText()">📝 單元清單</button>
+            <button style="background:#e67e22; color:white;" onclick="doPrint('card')">🖨️ 印單字卡</button>
+            <button style="background:#27ae60; color:white;" onclick="doPrint('exam')">📝 印紙本測驗</button>
             <input type="file" id="importFile" style="display:none" onchange="importData(event)">
         </div>
     </div>
@@ -93,12 +124,12 @@
 
 <div class="container" id="quiz-screen">
     <h2 id="quiz-title">測驗中</h2>
-    <div id="question-box" style="font-size: 1.4rem; margin: 30px 0; line-height: 1.6;"></div>
-    <input type="text" id="quiz-input" style="width: 80%; font-size: 1.4rem; text-align: center;" autocomplete="off">
-    <div id="feedback" style="margin: 20px; font-weight: bold; font-size: 1.2rem;"></div>
+    <div id="question-box" style="font-size: 1.5rem; margin: 30px 0; line-height: 1.6;"></div>
+    <input type="text" id="quiz-input" style="width: 80%; font-size: 1.5rem; text-align: center;" autocomplete="off">
+    <div id="feedback" style="margin: 20px; font-weight: bold; font-size: 1.3rem;"></div>
     <div class="btn-group" style="justify-content: center;">
         <button class="btn-save" id="submit-btn" onclick="checkAnswer()">提交</button>
-        <button id="next-btn" class="btn-quiz" style="display:none; flex:none; width: 120px;" onclick="nextQuestion()">下一題</button>
+        <button id="next-btn" class="btn-quiz" style="display:none; flex:none; width: 140px;" onclick="nextQuestion()">下一題</button>
         <button onclick="exitQuiz()" style="background:#ccc;">退出</button>
     </div>
 </div>
