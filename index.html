@@ -2,93 +2,90 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>專業單字管理系統</title>
+    <title>專業單字管理系統 v61</title>
     <style>
-        :root { --p: #3498db; --s: #2ecc71; --err: #e74c3c; --warn: #f39c12; --bg: #f4f7f6; }
+        :root { --p: #3498db; --s: #2ecc71; --err: #e74c3c; --warn: #f39c12; --bg: #f4f7f6; --card: #ffffff; }
         body { font-family: 'Arial', 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
-        .container { max-width: 850px; margin: 20px auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .admin-section { border: 2px solid #e0e0e0; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
-        .input-grid { display: grid; grid-template-columns: 1fr 1.2fr 120px; gap: 10px; margin-top: 10px; }
-        input, select, button { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        .container { max-width: 850px; margin: 20px auto; }
+        
+        /* 獨立功能區塊樣式 */
+        .input-card { 
+            background: var(--card); 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08); 
+            border-top: 5px solid var(--p);
+            margin-bottom: 30px;
+        }
+        .section-title { margin-top: 0; color: #2c3e50; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr 100px; gap: 12px; margin-top: 15px; }
+        input, select, button { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--p); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
         .full-width { grid-column: span 3; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
-        button { cursor: pointer; border: none; font-weight: bold; transition: 0.2s; }
-        .btn-save { background: var(--p); color: white; }
+        
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        button { cursor: pointer; border: none; font-weight: bold; }
+        .btn-save { background: var(--p); color: white; flex: 1; }
+        .btn-save:hover { background: #2980b9; }
+        
+        /* 其他 UI 保持一致 */
+        .admin-section { background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .btn-quiz { background: #9b59b6; color: white; flex: 1; padding: 15px; }
         .filter-box { background: #ebf5fb; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--p); }
         .unit-card { border: 1px solid #eee; margin-top: 20px; border-radius: 10px; overflow: hidden; background: #fff; }
         .unit-header { background: #f8f9fa; padding: 10px 15px; display: flex; justify-content: space-between; border-bottom: 2px solid var(--p); align-items: center; }
         .vocab-row { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f1f1f1; gap: 12px; }
         .vocab-info { flex-grow: 1; }
-        #quiz-screen { display: none; text-align: center; padding: 40px 20px; }
+
+        #quiz-screen { display: none; text-align: center; padding: 40px 20px; background: white; border-radius: 15px; }
         #result-summary { display: none; background: #fff; padding: 20px; border-radius: 10px; border: 2px solid var(--p); margin-top: 20px; text-align: left; }
-        
         #print-temp-container { display: none; }
 
-        /* --- 列印邊距核心修正 --- */
         @media print {
-            @page { 
-                size: A4; 
-                margin: 1cm 0 0 0; /* 頂部 1cm，左右由內容寬度控制 */
-            }
+            @page { size: A4; margin: 1cm 0 0 0; }
             html, body { background: white !important; margin: 0; padding: 0; }
             body * { visibility: hidden; }
             #print-temp-container, #print-temp-container * { visibility: visible; }
             #print-temp-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-            
-            /* 紙本測驗：寬度 190mm + margin auto = 左右各 1cm 邊界 */
-            .quiz-sheet { 
-                width: 190mm; 
-                margin: 0 auto !important; 
-                padding: 0;
-            }
-            
-            /* 單字卡：寬度 190mm + margin auto = 左右各 1cm 邊界 */
-            .print-page { 
-                display: grid !important; 
-                grid-template-columns: 95mm 95mm; 
-                grid-template-rows: repeat(7, 40mm); 
-                width: 190mm; 
-                margin: 0 auto !important; 
-                page-break-after: always; 
-            }
-            .print-item { 
-                border: 0.5pt solid #000 !important; 
-                display: flex !important; 
-                flex-direction: column !important; 
-                justify-content: center !important; 
-                align-items: center !important; 
-                padding: 5mm; 
-                text-align: center; 
-                box-sizing: border-box;
-                background: white !important;
-            }
+            .quiz-sheet { width: 190mm; margin: 0 auto !important; }
+            .print-page { display: grid !important; grid-template-columns: 95mm 95mm; grid-template-rows: repeat(7, 40mm); width: 190mm; margin: 0 auto !important; page-break-after: always; }
+            .print-item { border: 0.5pt solid #000 !important; display: flex !important; flex-direction: column !important; justify-content: center !important; align-items: center !important; padding: 5mm; text-align: center; box-sizing: border-box; background: white !important; }
             .print-word { font-size: 18pt; font-weight: bold; color: black !important; }
             .print-trans { font-size: 12pt; margin: 2mm 0; color: black !important; }
-            .print-ex { font-size: 9pt; font-style: italic; color: #333 !important; line-height: 1.2; }
         }
     </style>
 </head>
 <body>
 
 <div class="container" id="home-screen">
-    <div class="admin-section">
-        <h2>📂 單字管理系統 v60</h2>
-        <div class="input-grid" id="input-area">
-            <input type="text" id="unitName" list="unit-history" placeholder="單元名稱">
+    <div class="input-card">
+        <h3 class="section-title">⌨️ 快速錄入模式</h3>
+        <div class="input-grid">
+            <input type="text" id="unitName" list="unit-history" placeholder="單元名稱 (例如: Unit 1)">
             <datalist id="unit-history"></datalist>
-            <input type="text" id="word" placeholder="英文單字">
+            
+            <input type="text" id="word" placeholder="英文單字" onkeydown="if(event.key==='Enter') document.getElementById('trans').focus()">
+            
             <select id="pos">
                 <option value="n.">n.</option><option value="v.">v.</option>
                 <option value="adj.">adj.</option><option value="adv.">adv.</option>
                 <option value="phr.">phr.</option><option value="idiom">idiom</option>
             </select>
-            <input type="text" id="trans" placeholder="中文解釋" class="full-width">
-            <input type="text" id="example" class="full-width" placeholder="例句內容">
+            
+            <input type="text" id="trans" placeholder="中文解釋 (輸入完按 Enter 儲存)" class="full-width" onkeydown="if(event.key==='Enter') saveVocab()">
+            
+            <input type="text" id="example" class="full-width" placeholder="例句內容 (選填)">
         </div>
         <div class="btn-group">
-            <button class="btn-save" onclick="saveVocab()">💾 儲存單字</button>
-            <button id="btn-cancel" style="display:none; background:#999; color:white;" onclick="clearInputs(true)">取消</button>
+            <button class="btn-save" onclick="saveVocab()">💾 儲存單字 (Enter)</button>
+            <button id="btn-cancel" style="display:none; background:#999; color:white;" onclick="clearInputs(true)">取消修改</button>
+        </div>
+    </div>
+
+    <div class="admin-section">
+        <h3 class="section-title">🛠️ 系統工具</h3>
+        <div class="btn-group" style="margin-top:0;">
             <button style="background:#7f8c8d; color:white;" onclick="exportData()">📤 匯出備份</button>
             <button style="background:#7f8c8d; color:white;" onclick="document.getElementById('importFile').click()">📥 匯入資料</button>
             <button style="background:#2c3e50; color:white;" onclick="exportAsText()">📝 輸出清單.txt</button>
@@ -107,7 +104,7 @@
     </div>
 
     <div class="admin-section">
-        <h3 style="margin:0 0 10px 0;">🎯 測驗 (依上方範圍)</h3>
+        <h3 style="margin:0 0 10px 0;">🎯 測驗模式</h3>
         <div style="display:flex; gap:10px;">
             <button class="btn-quiz" onclick="startQuiz('spelling')">拼寫練習</button>
             <button class="btn-quiz" style="background:#34495e;" onclick="startQuiz('cloze')">句子填空</button>
@@ -148,16 +145,25 @@
     }
 
     function saveVocab() {
-        const word = document.getElementById('word').value.trim();
-        const trans = document.getElementById('trans').value.trim();
+        const wordInput = document.getElementById('word');
+        const transInput = document.getElementById('trans');
+        const word = wordInput.value.trim();
+        const trans = transInput.value.trim();
         const unit = document.getElementById('unitName').value.trim() || "未分類";
         const editId = document.getElementById('edit-id').value;
-        if(!word || !trans) return alert("內容不完整");
+        
+        if(!word || !trans) return;
+
         if(editId !== "") { for (let u in vocabDB) vocabDB[u] = vocabDB[u].filter(i => String(i.id) !== String(editId)); }
         if(!vocabDB[unit]) vocabDB[unit] = [];
         vocabDB[unit].push({ id: editId || Date.now().toString(), word, trans, pos: document.getElementById('pos').value, example: document.getElementById('example').value.trim() });
+        
         localStorage.setItem('myVocabApp_v28', JSON.stringify(vocabDB));
-        renderUI(); clearInputs(false);
+        renderUI(); 
+        clearInputs(false);
+        
+        // 核心修正：自動將焦點跳回單字輸入欄位，方便連續輸入
+        wordInput.focus();
     }
 
     function renderUI() {
@@ -171,13 +177,14 @@
             if (currentFilter === "SHOW_ALL" || currentFilter === u) {
                 let html = `<div class="unit-card"><div class="unit-header"><div><input type="checkbox" onclick="toggleUnit('${u}', this.checked)"> <b>${u}</b></div><div><button onclick="renameUnit('${u}')">✏️</button> <button onclick="deleteUnit('${u}')" style="color:red; background:none;">🗑️</button></div></div>`;
                 vocabDB[u].forEach(item => {
-                    html += `<div class="vocab-row"><input type="checkbox" class="vocab-checkbox" data-id="${item.id}"><div class="vocab-info"><b>${item.word}</b> (${item.pos}) - ${item.trans}<br><small>${item.example || ''}</small></div><button onclick="speak('${item.word}')">🔊</button><button class="btn-save" style="background:var(--warn); padding:5px; font-size:0.8rem;" onclick="editItem('${item.id}')">修改</button><button style="background:var(--err); color:white; padding:5px; font-size:0.8rem; border-radius:4px;" onclick="deleteItem('${item.id}')">刪除</button></div>`;
+                    html += `<div class="vocab-row"><input type="checkbox" class="vocab-checkbox" data-id="${item.id}"><div class="vocab-info"><b>${item.word}</b> (${item.pos}) - ${item.trans}<br><small>${item.example || ''}</small></div><button onclick="speak('${item.word}')">🔊</button><button class="btn-save" style="background:var(--warn); padding:5px; font-size:0.8rem; flex:none; width:60px;" onclick="editItem('${item.id}')">修改</button><button style="background:var(--err); color:white; padding:5px; font-size:0.8rem; border-radius:4px;" onclick="deleteItem('${item.id}')">刪除</button></div>`;
                 });
                 list.innerHTML += html + `</div>`;
             }
         });
     }
 
+    // 測驗邏輯保持不變...
     function startQuiz(mode) {
         qArr = [];
         const f = document.getElementById('viewFilter').value;
@@ -191,7 +198,6 @@
             qArr = vocabDB[f] || [];
         }
         if(qArr.length === 0) return alert("無單字可測驗");
-
         document.getElementById('quiz-title').innerText = "測驗中";
         document.getElementById('question-box').style.display = 'block';
         document.getElementById('quiz-input').style.display = 'inline-block';
@@ -200,7 +206,6 @@
         document.getElementById('next-btn').style.display = 'none';
         document.getElementById('submit-btn').style.display = 'inline-block';
         document.getElementById('feedback').innerText = "";
-        
         qMode = mode; qArr.sort(() => Math.random() - 0.5); qIdx = 0; stats = { correct: 0, wrong: 0, errors: [] };
         document.getElementById('home-screen').style.display = 'none';
         document.getElementById('quiz-screen').style.display = 'block';
@@ -276,7 +281,6 @@
             else items = vocabDB[f] || [];
         }
         if(items.length === 0) return alert("無內容");
-        
         let html = "";
         if(type === 'exam') {
             html += `<div class="quiz-sheet"><h2 style="text-align:center;">Vocabulary Test</h2>`;
@@ -319,7 +323,7 @@
                 document.getElementById('edit-id').value = f.id; document.getElementById('unitName').value = u;
                 document.getElementById('word').value = f.word; document.getElementById('pos').value = f.pos; 
                 document.getElementById('trans').value = f.trans; document.getElementById('example').value = f.example || "";
-                window.scrollTo(0,0);
+                window.scrollTo(0,0); document.getElementById('word').focus();
             }
         }
     }
